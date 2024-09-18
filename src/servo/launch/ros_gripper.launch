@@ -1,0 +1,5 @@
+<launch>
+	<node name="SensorReadings" pkg="servo" type="ToF_Reading.py" output="screen"/>
+	<node name="SensorFiltering" pkg="servo" type="ToF_Filtering.py" output="screen"/>
+	<node name="MovingServos" pkg="servo" type="Servo_Control.py" output="screen"/>
+</launch>
