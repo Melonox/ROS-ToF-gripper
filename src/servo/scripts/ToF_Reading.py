@@ -72,13 +72,13 @@ class ReadingSerial:
 def publishSerialReading():
     pub = rospy.Publisher('/sensor/data', Int32MultiArray, queue_size=0)
     rospy.init_node('servo_control', anonymous=True)
-    rosSensor = ReadingSerial(1) #IF YOU CHANGE THIS, YOU MUST CHANGE THE ToF_Filtering as well
+    rosSensor = ReadingSerial(4) #IF YOU CHANGE THIS, YOU MUST CHANGE THE ToF_Filtering as well
     while not rospy.is_shutdown():
         rosSensor.reading()
         msg = np.array(rosSensor.data)
         msg = np.ravel(msg)
         arrayMSG = msg.tolist()
-        rospy.loginfo(arrayMSG) # if you really wanted to be overwhelmed with the messages
+        # rospy.loginfo(arrayMSG) # if you really wanted to be overwhelmed with the messages
         pub.publish(Int32MultiArray(data=arrayMSG))
     
 # standard ROS main method
