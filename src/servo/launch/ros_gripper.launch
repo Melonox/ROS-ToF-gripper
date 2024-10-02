@@ -8,4 +8,5 @@
 		<param name="sensor_readings" type="int" value="64" />
 		<param name="filter_history" type="int" value="10" />
 	<node name="MovingServos" pkg="servo" type="Servo_Control.py" output="screen"/>
+		<param name="num_servos" type="int" value="4" />
 </launch>

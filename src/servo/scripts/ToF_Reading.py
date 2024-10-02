@@ -12,7 +12,7 @@ class ReadingSerial:
         self.data = [[]] * self.numToFSensor
         # reading board with serial
         self.ser = serial.Serial (
-            port=port,
+            port="/dev/ttyACM0",
             baudrate=baudrate
         )
         self.lengthOfReadings = 8
