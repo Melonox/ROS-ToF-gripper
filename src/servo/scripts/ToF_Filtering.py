@@ -6,7 +6,8 @@ import numpy as np
 from scipy import signal
 import sys
 
-np.set_printoptions(threshold=sys.maxsize)
+import matplotlib.pyplot as plt
+# np.set_printoptions(threshold=sys.maxsize)
 #both subscriber and publisher
 class FilteringToF:
 
@@ -22,15 +23,15 @@ class FilteringToF:
         self.queueSize = 10
         # rospy.Subscriber('/sensor/data', Int32MultiArray, self.filter)
         rospy.Subscriber('/sensor/data', Int32MultiArray, self.vectorized_filter)
-        self.pub_filtered = rospy.Publisher('/sensor/filtered_data', UInt16MultiArray, queue_size=10)
-        self.pub_avr_readings = rospy.Publisher('/servo/command', UInt16MultiArray, queue_size=10)
+        self.pub_filtered = rospy.Publisher('/sensor/filtered_data', UInt16MultiArray, queue_size=1)
+        self.pub_avr_readings = rospy.Publisher('/servo/command', UInt16MultiArray, queue_size=1)
         self.queueData = np.zeros((self.numberOfSensors, 8, 8)).tolist()
         for i in range(self.numberOfSensors):
             for j in range(8):
                 for k in range(8):
                     self.queueData[i][j][k] = []
 
-        self.filter_history = 100 #filter_history
+        self.filter_history = filter_history
         self.filterData = np.zeros((self.filter_history, self.sensor_readings * self.numberOfSensors))
         self.filteredData = self.filterData
         # self.counter = 0
@@ -42,15 +43,15 @@ class FilteringToF:
         self.filterData[-1,:] = data
         # print(self.filterData[0])
             
-        self.filteredData = self.feedbackFilter(self.filterData, 0.2, 0.8)
+        self.filteredData = self.feedbackFilter(self.filterData, 0.5, 0.5)
 
         # self.counter += 1
+        # print(self.counter)
         # if self.counter % 20 == 0:
         #     import pdb; pdb.set_trace()
             #self.visualize(self.filterData)
 
     def visualize(self):
-        import matplotlib.pyplot as plt
         plt.plot(np.arange(self.filter_history), self.filterData[:,0])
         plt.plot(np.arange(self.filter_history), self.filteredData[:,0])
         plt.show()
@@ -69,9 +70,12 @@ class FilteringToF:
         return x
 
     def avg_sensor_reading(self, readings):
-        # import pdb; pdb.set_trace()
         data = readings[-1,:].reshape((self.numberOfSensors, self.sensor_readings))
         return data.mean(axis=1)
+    
+    def avg_center_readings(self, readings):
+        data = readings[-1,:].reshape((self.numberOfSensors, self.sensor_readings))
+        return data[:,30:36].mean(axis=1)
 
     
     # # storing data into the queue, pushes until queue reaches queueSize, then pops to keep queueSize
@@ -158,4 +162,4 @@ if __name__ == "__main__":
     
     while not rospy.is_shutdown():
         filter.pub_filtered.publish(UInt16MultiArray(data=filter.filteredData[-1,:].astype(np.uint16)))
-        filter.pub_avr_readings.publish(UInt16MultiArray(data=filter.avg_sensor_reading(filter.filteredData).astype(np.uint16)))
+        filter.pub_avr_readings.publish(UInt16MultiArray(data=filter.avg_center_readings(filter.filteredData).astype(np.uint16)))

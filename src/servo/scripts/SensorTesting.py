@@ -2,7 +2,7 @@ import serial
 import time
 
 ser = serial.Serial (
-    port='/dev/ttyFeather',
+    port='/dev/ttyACM0',
     baudrate=115200
 )
 

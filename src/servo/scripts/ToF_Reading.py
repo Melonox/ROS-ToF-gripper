@@ -16,10 +16,16 @@ class ReadingSerial:
             baudrate=baudrate
         )
         self.lengthOfReadings = 8
+        self.numberOfDataPoints = self.lengthOfReadings * self.lengthOfReadings * numToFSensor
     
     # string representation of the ReadingSerial object
     def __str__(self):
         return f"There are {self.numToFSensor} ToF sensors \n data: {self.data}"
+    
+    # calibrating sensors because they will be inaccurate
+    def calibrationSequence(self):
+        distances = 10
+        np.zeroes(self.numberOfDataPoints)
     
     def string_sensor_data(self):
         all_readings = ""
@@ -65,7 +71,6 @@ class ReadingSerial:
     # no return, just call this and access the data field
     def reading(self):
         self.data.clear()
-
         self.data = [[]] * self.numToFSensor
         print(len(self.data), len(self.data[0]))
         while(len(self.data[0]) < self.lengthOfReadings): # checks first sensor
@@ -110,7 +115,7 @@ class ReadingSerial:
 # method for running the ROS publisher node and publishes the ToF sensors 
 # data with an single array comprising 6x8x8 points
 def publishSerialReading():
-    pub = rospy.Publisher('/sensor/data', Int32MultiArray, queue_size=0)
+    pub = rospy.Publisher('/sensor/data', Int32MultiArray, queue_size=1)
     rospy.init_node('sensor_data', anonymous=True)
     num_sensors = rospy.get_param('num_sensors', 4) # Default is 4 sensors
     port = rospy.get_param('port', "/dev/ttyACM0") # Default is 4 sensors
@@ -128,8 +133,9 @@ def publishSerialReading():
         msg = arr
         msg = np.ravel(msg)
         arrayMSG = msg.tolist()
-        # rospy.loginfo(arrayMSG) # if you really wanted to be overwhelmed with the messages
-        pub.publish(Int32MultiArray(data=arrayMSG))
+        rospy.loginfo(arrayMSG) # if you really wanted to be overwhelmed with the messages
+        if (len(msg) == rosSensor.numberOfDataPoints): #checks to make sure we pass 256 points
+            pub.publish(Int32MultiArray(data=arrayMSG))
     
 # standard ROS main method
 if __name__ == '__main__':
