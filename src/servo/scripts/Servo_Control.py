@@ -77,7 +77,7 @@ class Servo:
         self.previous_time = time.time()
 
         rospy.Subscriber('/servo/command', UInt16MultiArray, self.servo_callback2, queue_size=1, buff_size=2**24)
-        self.pub = rospy.Publisher('/servo/input', UInt16MultiArray, queue_size=1)
+        self.pub_position = rospy.Publisher('/servo/position', Float32MultiArray, queue_size=1)
         
 
     # String representation of the object
@@ -184,12 +184,12 @@ class Servo:
         adjustment = self.kp * angle_error + self.ki * self.integral + self.kd * self.derivative
 
         current_servo_position = self.myKit.servo[0].angle
-        print(current_servo_position)
+        self.pub_position.publish(Float32MultiArray(data=[current_servo_position]))
         new_servo_position = current_servo_position + adjustment
         new_servo_position = max(0, min(85, new_servo_position))
         # import pdb; pdb.set_trace()
 
-        self.myKit.servo[0].angle = new_servo_position
+        # self.myKit.servo[0].angle = new_servo_position
         time.sleep(0.1)   
 
 
