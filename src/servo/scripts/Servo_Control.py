@@ -6,6 +6,8 @@ from simple_pid import PID
 import numpy as np
 import time
 
+CM_PER_DEGREE = 0.375 # cm
+
 # This servo class turns the physical servos connected to a PWM driver board
 class Servo:
 
@@ -53,6 +55,8 @@ class Servo:
                               [80, 46],
                               [85, 43]])
         
+
+        
         self.target_distance = target_distance
         self.target_angle = self.test[(np.abs(self.test[:,1] - self.target_distance * 10)).argmin(), 0]
         self.pid = []
@@ -63,6 +67,14 @@ class Servo:
             self.pid[i].output_limits = (0, 85)
 
         time.sleep(2)
+        
+        # PID variables
+        self.kp = 0.9
+        self.ki = 0.001
+        self.kd = 0.1
+        self.integral = 0
+        self.previous_error = 0
+        self.previous_time = time.time()
 
         rospy.Subscriber('/servo/command', UInt16MultiArray, self.servo_callback2, queue_size=1, buff_size=2**24)
         self.pub = rospy.Publisher('/servo/input', UInt16MultiArray, queue_size=1)
@@ -155,17 +167,30 @@ class Servo:
         # print(self.servo_0, control, arrayInput, end)
 
     def servo_callback2(self, msg):
-        current_distance = msg.data[0] / 10
-        print(current_distance)
-        if current_distance < self.target_distance - 0.1:
-            self.servos[0] = 0
-            self.myKit.servo[0].angle = self.servos[0]
-        elif current_distance > self.target_distance + 0.1:
-            self.servos[0] = 85
-            self.myKit.servo[0].angle = self.servos[0]
+        self.current_time = time.time()
+        self.elapsed_time = self.current_time - self.previous_time
 
-        time.sleep(0.1)
         
+        error = msg.data[0] / 10 - self.target_distance
+        angle_error = error / CM_PER_DEGREE # 
+        
+        # Calculate Integral
+        self.integral += angle_error * self.elapsed_time
+
+        # Calculate Derivative
+        self.derivative = (angle_error - self.previous_error) / self.elapsed_time if self.elapsed_time > 0 else 0
+
+        # PID
+        adjustment = self.kp * angle_error + self.ki * self.integral + self.kd * self.derivative
+
+        current_servo_position = self.myKit.servo[0].angle
+        print(current_servo_position)
+        new_servo_position = current_servo_position + adjustment
+        new_servo_position = max(0, min(85, new_servo_position))
+        # import pdb; pdb.set_trace()
+
+        self.myKit.servo[0].angle = new_servo_position
+        time.sleep(0.1)   
 
 
 
@@ -174,6 +199,6 @@ if __name__ == '__main__':
     rospy.init_node('servo_control', anonymous=True)
     num_servos = rospy.get_param('num_servos', 1)
     mode = rospy.get_param('mode', "nervous")
-    target_distance = rospy.get_param('target_distance', 4)
+    target_distance = rospy.get_param('target_distance', 5)
     servo = Servo(num_servos, mode, target_distance)
     rospy.spin()
