@@ -10,5 +10,5 @@
 	<node name="MovingServos" pkg="servo" type="Servo_Control.py" output="screen"/>
 		<param name="num_servos" type="int" value="4" />
 		<param name="mode" type="string" value="follow" />
-		<param name="target_distance" type="int" value="4" /> 
+		<param name="target_distance" type="int" value="2" /> 
 </launch>

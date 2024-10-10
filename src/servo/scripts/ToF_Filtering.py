@@ -37,19 +37,11 @@ class FilteringToF:
         # self.counter = 0
     
     def vectorized_filter(self, msg):
-        # import pdb; pdb.set_trace()
         data = np.array(msg.data)
         self.filterData[:-1,:] = self.filterData[1:,:]
         self.filterData[-1,:] = data
-        # print(self.filterData[0])
-            
         self.filteredData = self.feedbackFilter(self.filterData, 0.5, 0.5)
 
-        # self.counter += 1
-        # print(self.counter)
-        # if self.counter % 20 == 0:
-        #     import pdb; pdb.set_trace()
-            #self.visualize(self.filterData)
 
     def visualize(self):
         plt.plot(np.arange(self.filter_history), self.filterData[:,0])
@@ -60,7 +52,7 @@ class FilteringToF:
     def feedbackFilter(self, x, a0, b1):
         y = np.zeros_like(x)
         for n in range(0, x.shape[0]):
-            y[n,:] = a0 * x[n,:] + b1 * y[n-1,:] # something here about + or - ??
+            y[n,:] = a0 * x[n,:] + b1 * y[n-1,:] 
         return y
     
     def gating(self, x):
@@ -77,80 +69,9 @@ class FilteringToF:
         data = readings[-1,:].reshape((self.numberOfSensors, self.sensor_readings))
         return data[:,30:36].mean(axis=1)
 
-    
-    # # storing data into the queue, pushes until queue reaches queueSize, then pops to keep queueSize
-    # def pushAndPopQueue(self):
-    #     for i in range(self.numberOfSensors):
-    #         for j in range (8):
-    #             for k in range(8):
-    #                 if (len(self.queueData[i][j][k]) < self.queueSize):
-    #                     self.queueData[i][j][k].append(self.sensorData[i][j][k])
-    #                 elif (len(self.queueData[i][j][k]) > self.queueSize):
-    #                     while (len(self.queueData[i][j][k]) > self.queueSize):
-    #                         self.queueData[i][j][k].pop(0)
-    #                 else:
-    #                     self.queueData[i][j][k].append(self.sensorData[i][j][k])
-    #                     self.queueData[i][j][k].pop(0)
-    
-    #filter based off previous point, changes the sensor data values through filtering
-    # def feedbackFilter(self, x, a0, b1):
-    #     y = np.zeros(x.size)
-    #     for n in range(0, x.size):
-    #         y[n] = a0 * x[n] - b1 * y[n-1] # something here about + or - ??
-    #     return y.tolist()
-    
-    #gating sensor feedback, changes the sensor data values through gating
-    # def gating(self, x):
-    #     var = np.var(x)
-    #     mean = np.mean(x)
-    #     x[x > mean + 3*np.sqrt(var)] = mean
-    #     return x.tolist()
-    
-    # # process of filtering data for each individual sensor, changes sensor data
-    # def filterProcess(self):
-    #     for i in range(self.numberOfSensors):
-    #         for j in range (8):
-    #             for k in range(8):
-    #                 self.queueData[i][j][k] = self.gating(np.array(self.queueData[i][j][k])) #gating
-    #                 self.queueData[i][j][k] = self.feedbackFilter(np.array(self.queueData[i][j][k]), 1.0-self.weight, self.weight) #filtering
-    #                 self.sensorData[i][j][k] = self.queueData[i][j][k][-1]
-
-    # # matches a plane given that each sensor is responsible for their own sensors.
-    # def simplePlane(self):
-    #     median = []
-    #     for i in range(self.numberOfSensors):
-    #         for j in range (8):
-    #             for k in range(8):
-    #                 median.append(self.sensorData[i][j][k])
-    #         self.arrDistance[i] = statistics.median(median)
-    #         median.clear()
-
-    #describes the process of filtering data and turning it into an angle
-    # def filter(self, msg):
-    #     if msg.data:
-    #         ########################################################################
-    #         save = np.array(msg.data)
-    #         self.sensorData = save.reshape(self.numberOfSensors,8,8).tolist()
-    #         self.pushAndPopQueue()
-    #         if (len(self.queueData[0][0][0]) == self.queueSize):
-    #             self.filterProcess()
-    #             rospy.loginfo(self.sensorData)
-    #             for i in range(len(self.sensorData)):
-    #                 self.sensorData[i] = signal.medfilt2d(np.array(self.sensorData[i])).tolist()
-    #             rospy.loginfo(self.sensorData)
-    #             ########################################################################
-    #             self.simplePlane() # calculates individual finger distance
-    #             rospy.loginfo(self.arrDistance) #distance
-    #             self.publish() #publishes data
-
-    # publishes the array of angles for the servos to be set at
-    # def publish(self):
-        # for i in range(len(self.arrDistance)):
-        #     self.arrDistance[i] = int(self.arrDistance[i])
-        # if(len(self.arrDistance) == self.numOfServo):
-        #     self.pub.publish(Float32MultiArray(data=self.arrDistance))
-        #     #rospy.loginfo(self.arrDistance)
-
+    def median_center_readings(self, readings):
+        data = readings[-1,:].reshape((self.numberOfSensors, self.sensor_readings))
+        return np.median(data[:,30:36], axis=1)
 
 # runs main method of the program which creates the filter object and then publishes the angles to turn the servos
 if __name__ == "__main__":
@@ -162,4 +83,4 @@ if __name__ == "__main__":
     
     while not rospy.is_shutdown():
         filter.pub_filtered.publish(UInt16MultiArray(data=filter.filteredData[-1,:].astype(np.uint16)))
-        filter.pub_avr_readings.publish(UInt16MultiArray(data=filter.avg_center_readings(filter.filteredData).astype(np.uint16)))
+        filter.pub_avr_readings.publish(UInt16MultiArray(data=filter.median_center_readings(filter.filteredData).astype(np.uint16)))
