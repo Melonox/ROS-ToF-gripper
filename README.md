@@ -8,3 +8,5 @@ roscore
 source ~/catkin_ws/devel/setup.bash
 
 roslaunch servo ros_gripper.launch
+
+Paolo branch contains the entire catkin_ws
