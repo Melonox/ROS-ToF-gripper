@@ -22,6 +22,22 @@ myKit.servo[0].angle=0
 myKit.servo[1].angle=0
 myKit.servo[2].angle=0
 myKit.servo[3].angle=0
+myKit.servo[4].angle=0
+myKit.servo[5].angle=0
+myKit.servo[6].angle=0
+myKit.servo[7].angle=0 #55 #110 #20
+myKit.servo[8].angle=0
+myKit.servo[9].angle=0
+myKit.servo[10].angle=0
+myKit.servo[11].angle=0
+myKit.servo[12].angle=0
+myKit.servo[13].angle=0
+myKit.servo[14].angle=0
+myKit.servo[15].angle=10.25
+
+time.sleep(1)
+# import pdb; pdb.set_trace()
+# myKit.servo[7].angle
 
 # we will say for all servos, max is 85.
 # for i in range(0,4,1):

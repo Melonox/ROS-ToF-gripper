@@ -125,7 +125,7 @@ include_directories(
 #   src/${PROJECT_NAME}/servo.cpp
 # )
 
-catkin_install_python(PROGRAMS scripts/ServoSubscriber.py scripts/ServoPublisher.py scripts/ToFSensorPublisher.py scripts/Servo_Control.py scripts/ToF_Reading.py scripts/ToF_Filtering.py
+catkin_install_python(PROGRAMS scripts/ServoSubscriber.py scripts/ServoPublisher.py scripts/ToF_RViz.py scripts/Servo_Control.py scripts/ToF_Reading.py scripts/ToF_Filtering.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

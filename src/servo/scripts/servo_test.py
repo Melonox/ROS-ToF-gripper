@@ -8,18 +8,17 @@ import time
 
 import matplotlib.pyplot as plt
 
-MM_PER_DEGREE = 0.72 #0.375 # was 0.375
+CM_PER_DEGREE = 0.375 # was 0.375
 
 # This servo class turns the physical servos connected to a PWM driver board
 class Servo:
     # creating a servo object and setting the amount of servos connected to the PWM driver
-    def __init__(self, numServos, servo_zero_index, mode="nervous", target_distance=2):
+    def __init__(self, numServos, mode="nervous", target_distance=2):
         self.numServos = numServos
-        self.servo_zero_index = servo_zero_index
         self.mode = mode # nervous or follow
-        self.maxAngle = 110 #tested for safety or else the metal rod pops out
+        self.maxAngle = 85 #tested for safety or else the metal rod pops out
         self.myKit = ServoKit(channels=16) #16 channels on the board
-        self.servo_pins = np.array([4, 5, 6, 7])#np.arange(self.servo_zero_index, self.numServos + self.servo_zero_index) #array([8, 9, 10, 11]) #should have same length as numservos
+        self.servo_pins = np.array([4, 5, 6, 7]) #should have same length as numservos
         self.target_distance = target_distance
         self.servos = [0] * numServos
         for i in range(self.numServos):
@@ -31,9 +30,9 @@ class Servo:
         time.sleep(2)
         
         # PID variables
-        self.kp = 0.1 #0.75 #0.11
+        self.kp = 0.11
         self.ki = 0
-        self.kd = 0.01 #0.01 #0.01
+        self.kd = 0.01
         self.integral = np.zeros(self.numServos)
         self.derivative = np.zeros(self.numServos)
         self.previous_error = [0]*4
@@ -49,26 +48,6 @@ class Servo:
     def set_angles(self, arrOfAngles):
         for i in range(self.numServos):
             self.myKit.servo[i].angle = arrOfAngles[i]
-
-    def servo_callback(self, msg):
-        a = 22 #30 #35 + 30 # mm calibration
-        dist = 20
-        e_min = 0
-        e_max = 84
-        theta_min = 0
-        theta_max = 110
-
-        e = msg.data[3] + a - dist
-        e = max(e_min, min(e_max, e))
-
-        angle1 = (e) * (theta_max - theta_min) / (e_max - e_min)
-
-        angle2 = max(theta_min, min(theta_max, angle1))
-
-        print(f'msg.data[3] {msg.data[3]} e {e} angle {angle2}')
-        self.myKit.servo[self.servo_pins[3]].angle = angle2
-
-        time.sleep(0.1) 
     
     # ROS callback
     def servo_callback2(self, msg):
@@ -77,18 +56,8 @@ class Servo:
         self.previous_time = self.current_time #added
         amount_of_servos = len(msg.data) #should equal self.numServos
         for i in range(amount_of_servos):
-            a = 15 #30 #35 + 30 # mm calibration
-            dist = 0
-            e_min = 0
-            e_max = 84
-            theta_min = 0
-            theta_max = 110
-
-            e = msg.data[3] + a - dist
-            e = max(e_min, min(e_max, e))
-
-            self.angle_error[i] = (e) * (theta_max - theta_min) / (e_max - e_min)
-
+            error = msg.data[i] / 10 - self.target_distance 
+            self.angle_error[i] = error / CM_PER_DEGREE 
         for i in range(amount_of_servos):
             # Calculate Integral #if you leave it on for a while reading the ceiling and then input an object, it decrements too slow
             self.integral[i] += self.angle_error[i] * self.elapsed_time
@@ -98,23 +67,22 @@ class Servo:
             # PID
             adjustment = self.kp * self.angle_error[i] + self.ki * self.integral[i] + self.kd * self.derivative[i]
             current_servo_position = self.myKit.servo[self.servo_pins[i]].angle
+            print(f'{current_servo_position}')
             #self.pub_position.publish(Float32MultiArray(data=[current_servo_position]))
             new_servo_position = current_servo_position + adjustment
-            # if i == 3:
-            #     print(f'{i} {current_servo_position} {adjustment}')
-            self.servo_positions[i] = max(0, min(self.maxAngle, new_servo_position))
+            
+            self.servo_positions[i] = max(0, min(85, new_servo_position))
         for i in range(amount_of_servos):
-            if i == 3:
-                print(f'angle_error[i] {self.angle_error[i]:.2f} servo.positions[i] {self.servo_positions[i]:.2f} current_servo_position {current_servo_position:.2f} adjustment {adjustment:.2f}')
+            #print(self.servo_positions) ###HERE
             self.myKit.servo[self.servo_pins[i]].angle = self.servo_positions[i]
         time.sleep(0.01) 
+        print(msg)
 
 # running the main method
 if __name__ == '__main__':
     rospy.init_node('servo_control', anonymous=True)
     num_servos = rospy.get_param('num_servos', 4)
-    servo_zero_index = rospy.get_param('servo_zero_index', 4)
     mode = rospy.get_param('mode', "nervous")
-    target_distance = rospy.get_param('target_distance', 40)
-    servo = Servo(num_servos, servo_zero_index, mode, target_distance)
+    target_distance = rospy.get_param('target_distance', 1)
+    servo = Servo(num_servos, mode, target_distance)
     rospy.spin()

@@ -3,6 +3,7 @@ import rospy
 from std_msgs.msg import Int32MultiArray, MultiArrayDimension
 import serial
 import numpy as np
+import ros_numpy
 
 # this object is used to read the serial output of the time of flight sensors
 class ReadingSerial:
@@ -27,13 +28,14 @@ class ReadingSerial:
         all_readings = ""
         val = self.ser.readline()
         valueInString = str(val, 'UTF-8')
-        if valueInString[1:3] == "1:":
+        test = valueInString.split()
+        if valueInString[1:3] == "1:" and len(test) == self.lengthOfReadings: 
             all_readings = all_readings + valueInString
         else:
             while valueInString[1:3] != "1:":
                 val = self.ser.readline()
                 valueInString = str(val, 'UTF-8')
-                if valueInString[1:3] == "1:":
+                if valueInString[1:3] == "1:" and len(test) == self.lengthOfReadings:
                     all_readings = all_readings + valueInString
         numberOfSensorReadingsLeft = self.numToFSensor * 8 - 1 + (self.numToFSensor)
         for i in range(numberOfSensorReadingsLeft):
@@ -51,7 +53,6 @@ class ReadingSerial:
             for reading in range(1, len(readings)):
                 sensor_id, value = readings[reading].split(':')
                 values.append(int(value))
-
         return np.array(values)
 
 # method for running the ROS publisher node and publishes the ToF sensors 
@@ -69,20 +70,25 @@ def publishSerialReading():
                 rospy.loginfo('Flushed buffer')
                 break 
     while not rospy.is_shutdown():
+        # try: # can be optimized?
+        #     data = rosSensor.string_sensor_data()
+        #     arr = rosSensor.parse_sensor_data(data)
+        # except ValueError:
+        #     pass
+        #rosSensor.reading()
         data = rosSensor.string_sensor_data()
         arr = rosSensor.parse_sensor_data(data)
-        #rosSensor.reading()
-        msg = arr
-        msg = np.ravel(msg)
-        arrayMSG = msg.tolist()
+        msg = np.ravel(arr)
+        # msg = np.ravel(msg) arrayMSG = msg.tolist()
         # rospy.loginfo(arrayMSG) # if you really wanted to be overwhelmed with the messages
         if (len(msg) == rosSensor.numberOfDataPoints): #checks to make sure we pass 256 points
-            pub.publish(Int32MultiArray(data=arrayMSG))
+            # print(arrayMSG, "here") pub.publish(Int32MultiArray(data=arrayMSG))
+            pub.publish(Int32MultiArray(data=msg))
+                
     
 # standard ROS main method
 if __name__ == '__main__':
     publishSerialReading()
-
     
 ##############sensor testing
 # 3.286 -> board 3.3V supply
@@ -91,7 +97,3 @@ if __name__ == '__main__':
 # After seperate power
 # 3.27 -> sensor 1
 # 3.19 -> sensor 4
-#
-#
-#
-#
